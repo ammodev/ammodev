@@ -1,0 +1,7 @@
+# Commit cache: contains names of private repos and files, never commit it
+commit-cache.json
+commit-cache.json.tmp
+stats.json
+*.log
+__pycache__/
+clones/

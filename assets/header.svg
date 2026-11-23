@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="260" viewBox="0 0 1000 260" fill="none" role="img" aria-labelledby="t d">
+  <title id="t">Hey, I'm Simon (ammo)</title>
+  <desc id="d">Full-stack and Minecraft server developer, coding since 2009, based in Germany.</desc>
+  <defs>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(820 40) rotate(90) scale(260 380)">
+      <stop stop-color="#A78BFA" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(80 260) rotate(90) scale(220 360)">
+      <stop stop-color="#3178C6" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#3178C6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#FAFAFA" fill-opacity=".06"/>
+    </pattern>
+    <linearGradient id="name" x1="56" y1="0" x2="470" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FAFAFA"/>
+      <stop offset="1" stop-color="#C4B5FD"/>
+    </linearGradient>
+    <clipPath id="card"><rect width="1000" height="260" rx="12"/></clipPath>
+    <style>
+      .mono { font-family: ui-monospace, SFMono-Regular, 'Cascadia Code', Consolas, 'Liberation Mono', monospace; }
+      .sans { font-family: 'Segoe UI', Ubuntu, 'Helvetica Neue', Arial, sans-serif; }
+      .in { animation: in .6s ease-out backwards; }
+      .l1 { animation-delay: .4s } .l2 { animation-delay: 1.1s } .l3 { animation-delay: 1.8s } .l4 { animation-delay: 2.5s }
+      .cursor { animation: blink 1.1s steps(1) infinite; }
+      @keyframes in { from { opacity: 0; transform: translateY(4px) } }
+      @keyframes blink { 50% { opacity: 0 } }
+      @media (prefers-reduced-motion: reduce) { .in, .cursor { animation: none } }
+    </style>
+  </defs>
+
+  <g clip-path="url(#card)">
+    <rect width="1000" height="260" fill="#09090B"/>
+    <rect width="1000" height="260" fill="url(#dots)"/>
+    <rect width="1000" height="260" fill="url(#glowA)"/>
+    <rect width="1000" height="260" fill="url(#glowB)"/>
+  </g>
+  <rect x=".5" y=".5" width="999" height="259" rx="11.5" stroke="#27272A"/>
+
+  <!-- left: intro -->
+  <text x="56" y="74" class="mono" font-size="14" fill="#A1A1AA">~/ammodev</text>
+  <text x="56" y="128" class="sans" font-size="46" font-weight="700" fill="url(#name)">Hey, I'm Simon</text>
+  <text x="56" y="162" class="sans" font-size="18" fill="#A1A1AA">Full-stack &amp; Minecraft server developer</text>
+
+  <g class="sans" font-size="12">
+    <rect x="56" y="186" width="132" height="26" rx="13" fill="#18181B" stroke="#27272A"/>
+    <circle cx="72" cy="199" r="4" fill="#A78BFA"/>
+    <text x="83" y="203" fill="#E4E4E7">coding since 2009</text>
+
+    <rect x="198" y="186" width="148" height="26" rx="13" fill="#18181B" stroke="#27272A"/>
+    <circle cx="214" cy="199" r="4" fill="#A97BFF"/>
+    <text x="225" y="203" fill="#E4E4E7">Kotlin · Java · TS</text>
+
+    <rect x="356" y="186" width="88" height="26" rx="13" fill="#18181B" stroke="#27272A"/>
+    <circle cx="372" cy="199" r="4" fill="#22C55E"/>
+    <text x="383" y="203" fill="#E4E4E7">Germany</text>
+  </g>
+
+  <!-- right: terminal -->
+  <g transform="translate(560 44)">
+    <rect width="384" height="172" rx="10" fill="#0F0F12" fill-opacity=".92" stroke="#27272A"/>
+    <path d="M0 10a10 10 0 0 1 10-10h364a10 10 0 0 1 10 10v20H0z" fill="#18181B"/>
+    <circle cx="18" cy="15" r="5" fill="#3F3F46"/>
+    <circle cx="36" cy="15" r="5" fill="#3F3F46"/>
+    <circle cx="54" cy="15" r="5" fill="#3F3F46"/>
+    <text x="192" y="19" class="mono" font-size="11" fill="#71717A" text-anchor="middle">zsh — ammo</text>
+
+    <g class="mono" font-size="13">
+      <g class="in l1">
+        <text x="18" y="56"><tspan fill="#A78BFA">❯</tspan><tspan fill="#E4E4E7"> whoami</tspan></text>
+        <text x="18" y="76" fill="#A1A1AA">simon aka ammo · dev @ SLNE</text>
+      </g>
+      <g class="in l2">
+        <text x="18" y="102"><tspan fill="#A78BFA">❯</tspan><tspan fill="#E4E4E7"> cat now.txt</tspan></text>
+        <text x="18" y="122" fill="#A1A1AA">paper plugins · web apps · games</text>
+      </g>
+      <g class="in l3">
+        <text x="18" y="148"><tspan fill="#A78BFA">❯</tspan><tspan fill="#E4E4E7"> </tspan></text>
+        <rect class="cursor" x="34" y="137" width="8" height="15" rx="1" fill="#E4E4E7"/>
+      </g>
+    </g>
+  </g>
+</svg>

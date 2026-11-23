@@ -1,0 +1,58 @@
+name: Language stats
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: language-stats
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The commit cache stays in the Actions cache (not committed), so names of
+      # private repos and files never end up in this public repo.
+      - name: Restore commit cache
+        uses: actions/cache/restore@v4
+        with:
+          path: commit-cache.json
+          key: commit-cache-${{ github.run_id }}
+          restore-keys: commit-cache-
+
+      # --quiet: logs of public repos are public, so don't print (private) repo names.
+      - name: Generate cards
+        env:
+          GITHUB_TOKEN: ${{ secrets.STATS_TOKEN }}
+          COMMIT_LANGS_AUTHOR_EMAILS: ${{ secrets.AUTHOR_EMAILS }}
+        run: >
+          python stats/commit_langs.py --quiet
+          --clone-dir "${{ runner.temp }}/clones" --workers 8
+          --show-hours --metric hours
+          --exclude-lang Batchfile --exclude-lang Dockerfile
+          --title-note "coding since 2009"
+          --out assets/languages.svg --activity-out assets/activity.svg
+
+      - name: Save commit cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: commit-cache.json
+          key: commit-cache-${{ github.run_id }}
+
+      - name: Commit cards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/languages.svg assets/activity.svg
+          git diff --cached --quiet || git commit -m "chore: update language stats"
+          git push
