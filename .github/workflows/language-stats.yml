@@ -37,10 +37,16 @@ jobs:
         run: >
           python stats/commit_langs.py --quiet
           --clone-dir "${{ runner.temp }}/clones" --workers 8
-          --show-hours --metric hours
+          --theme github --show-hours --metric hours
           --exclude-lang Batchfile --exclude-lang Dockerfile
           --title-note "coding since 2009"
           --out assets/languages.svg --activity-out assets/activity.svg
+
+      # age is computed from a secret, so the birth date never shows up anywhere
+      - name: Generate header
+        env:
+          BIRTH_DATE: ${{ secrets.BIRTH_DATE }}
+        run: python stats/header.py --out assets/header.svg
 
       - name: Save commit cache
         if: always()
@@ -53,6 +59,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/languages.svg assets/activity.svg
+          git add assets/languages.svg assets/activity.svg assets/header.svg
           git diff --cached --quiet || git commit -m "chore: update language stats"
           git push

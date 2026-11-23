@@ -558,7 +558,7 @@ def render_svg(stats: dict, args) -> str:
     # rough text widths (18px semibold title, 10px note) so the note never overlaps the title
     note_fits = bool(args.title_note) and len(args.title) * 10 + len(args.title_note) * 5.5 + 16 < width - 2 * pad
     font = "'Segoe UI', Ubuntu, 'Helvetica Neue', Sans-Serif"
-    c = lambda v: "#" + v.lstrip("#")  # noqa: E731
+    tc, xc, bc, bg, theme_css = theme(args)
 
     segments, x = [], 0.0
     for l in langs:
@@ -580,34 +580,33 @@ def render_svg(stats: dict, args) -> str:
                          f'<text x="15" y="10" class="lang">{label}</text></g>')
         else:
             iy = list_y + i * row_h
-            right = f'{l["percent"]:.1f}%'
-            if args.show_hours:
-                right = f'{fmt_hours(l["hours"])}<tspan class="dim">  ·  {l["percent"]:.1f}%</tspan>'
+            hours = (f'<text x="{bar_w - 52}" y="10" class="lang" text-anchor="end">{fmt_hours(l["hours"])}</text>'
+                     if args.show_hours else "")
             items.append(f'<g transform="translate({pad},{iy})" class="item" {delay}>{dot}'
-                         f'<text x="15" y="10" class="lang">{escape(l["name"])}</text>'
-                         f'<text x="{bar_w}" y="10" class="lang" text-anchor="end">{right}</text></g>')
+                         f'<text x="15" y="10" class="lang">{escape(l["name"])}</text>{hours}'
+                         f'<text x="{bar_w}" y="10" class="lang dim" text-anchor="end">{l["percent"]:.1f}%</text></g>')
 
     footer_svg = ""
     if footer:
         since = f" since {args.since[:10]}" if args.since else ""
-        hours = f' · ≈{stats["hours"]:,.0f} hrs' if args.show_hours else ""
         footer_svg = (
             f'<text x="{pad}" y="{height - 14}" class="foot">'
-            f'{stats["commits"]:,} commits · {stats["repos"]} repos{hours}{since}</text>'
+            f'From {stats["commits"]:,} commits in {stats["repos"]} repos{since}</text>'
         )
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" fill="none" role="img" aria-labelledby="title">
 <title id="title">{escape(args.title)}</title>
 <style>
-  .header {{ font: 600 18px {font}; fill: {c(args.title_color)}; }}
-  .lang {{ font: 400 11px {font}; fill: {c(args.text_color)}; }}
+  {theme_css}
+  .header {{ font: 600 18px {font}; fill: {tc}; }}
+  .lang {{ font: 400 11px {font}; fill: {xc}; }}
   .dim {{ opacity: .6; }}
-  .foot {{ font: 400 10px {font}; fill: {c(args.text_color)}; opacity: .7; }}
+  .foot {{ font: 400 10px {font}; fill: {xc}; opacity: .7; }}
   .item {{ animation: fade .3s ease-in-out backwards; }}
   @keyframes fade {{ from {{ opacity: 0; }} }}
   @media (prefers-reduced-motion: reduce) {{ .item {{ animation: none; }} }}
 </style>
-<rect x="0.5" y="0.5" rx="{args.border_radius}" width="{width - 1}" height="{height - 1}" fill="{c(args.bg_color)}" stroke="{c(args.border_color)}" stroke-opacity="{0 if args.hide_border else 1}"/>
+<rect x="0.5" y="0.5" rx="{args.border_radius}" width="{width - 1}" height="{height - 1}" style="fill:{bg};stroke:{bc}" stroke-opacity="{0 if args.hide_border else 1}"/>
 <text x="{pad}" y="35" class="header">{escape(args.title)}</text>
 {f'<text x="{width - pad}" y="34" class="foot" text-anchor="end">{escape(args.title_note)}</text>' if note_fits else ""}
 <mask id="bar"><rect x="0" y="0" width="{bar_w}" height="8" rx="4" fill="white"/></mask>
@@ -618,8 +617,25 @@ def render_svg(stats: dict, args) -> str:
 """
 
 
+# text follows GitHub's light/dark mode; activity blocks are redstone red in both
+GITHUB_THEME_CSS = (
+    "svg { --t: #1f2328; --x: #59636e; --b: #d1d9e0; --k0: #a3130b; --k1: #b8180e; --k2: #c92012; --k3: #d92b18; }"
+    " @media (prefers-color-scheme: dark) { svg { --t: #f0f6fc; --x: #9198a1; --b: #3d444d; } }"
+)
+
+
+def theme(args) -> tuple:
+    """(title, text, border, background, extra css). 'github' follows GitHub's light/dark mode."""
+    if args.theme == "github":
+        return "var(--t)", "var(--x)", "var(--b)", "none", GITHUB_THEME_CSS
+    c = lambda v: "#" + v.lstrip("#")  # noqa: E731
+    k = c(args.activity_color)
+    css = f"svg {{ --k0: {k}; --k1: {k}; --k2: {k}; --k3: {k}; }}"
+    return c(args.title_color), c(args.text_color), c(args.border_color), c(args.bg_color), css
+
+
 def render_activity_svg(stats: dict, args) -> str:
-    """Bar chart of estimated hours per year."""
+    """Hours per year, drawn as stacks of blocks (one block = a fixed number of hours)."""
     years = stats.get("years", {})
     if not years:
         return ""
@@ -627,49 +643,57 @@ def render_activity_svg(stats: dict, args) -> str:
     labels = [str(y) for y in range(first, last + 1)]
     values = [years.get(y, {}).get("hours", 0) for y in labels]
     width, pad, height = args.activity_width, 25, args.activity_height
-    chart_top, chart_bottom = 70, height - 42
-    chart_h = chart_bottom - chart_top
-    slot = (width - 2 * pad) / len(labels)
-    bar_w = min(28, slot * 0.62)
-    peak = max(values) or 1
+    tc, xc, bc, bg, theme_css = theme(args)
     font = "'Segoe UI', Ubuntu, 'Helvetica Neue', Sans-Serif"
-    c = lambda v: "#" + v.lstrip("#")  # noqa: E731
-    accent = c(args.activity_color)
 
-    bars = []
+    chart_top, chart_bottom = 62, height - 40
+    slot = (width - 2 * pad) / len(labels)
+    block = int(min(slot * 0.55, 18))
+    gap = 2
+    max_blocks = max(1, (chart_bottom - chart_top - 16) // (block + gap))
+    peak = max(values) or 1
+    # round the block size to a friendly number of hours
+    per_block = next(n for n in (5, 10, 20, 25, 50, 75, 100, 150, 200, 250, 500, 1000, 10**9) if peak / n <= max_blocks)
+
+    cols = []
     for i, (label, v) in enumerate(zip(labels, values)):
-        h = max(chart_h * v / peak, 2 if v else 0)
-        x = pad + i * slot + (slot - bar_w) / 2
-        y = chart_bottom - h
-        value = f"{v:,.0f}" if v >= 1 else ("" if not v else "&lt;1")
-        bars.append(
-            f'<g class="item" style="animation-delay:{150 + i * 60}ms">'
-            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" height="{h:.1f}" rx="3" fill="{accent}" '
-            f'fill-opacity="{0.35 + 0.65 * v / peak:.2f}"/>'
-            f'<text x="{x + bar_w / 2:.1f}" y="{y - 5:.1f}" class="val" text-anchor="middle">{value}</text>'
-            f'<text x="{x + bar_w / 2:.1f}" y="{chart_bottom + 15}" class="lbl" text-anchor="middle">{label[2:] if len(labels) > 12 else label}</text>'
-            f'</g>'
+        full, rest = divmod(v, per_block)
+        x = pad + i * slot + (slot - block) / 2
+        squares, y = [], chart_bottom + gap
+        # whole blocks, then the remainder as a partly filled block (at least a sliver, so small years still show)
+        sizes = [block] * int(full) + ([max(2, round(block * rest / per_block))] if rest > 0 else [])
+        for j, h in enumerate(sizes):
+            y -= h + gap
+            tone = (i * 7 + j * 13 + j * j) % 4  # fixed pseudo-random "stone" texture
+            squares.append(f'<rect x="{x:.1f}" y="{y}" width="{block}" height="{h}" style="fill:var(--k{tone})"/>')
+        top = y - 5
+        value = f"{v:,.0f}" if v >= 1 else ""
+        cols.append(
+            f'<g class="item" style="animation-delay:{150 + i * 60}ms">{"".join(squares)}'
+            f'<text x="{x + block / 2:.1f}" y="{top}" class="val" text-anchor="middle">{value}</text>'
+            f'<text x="{x + block / 2:.1f}" y="{chart_bottom + 16}" class="lbl" text-anchor="middle">'
+            f'{label[2:] if len(labels) > 12 else label}</text></g>'
         )
-    total = sum(values)
-    note = f'<text x="{width - pad}" y="34" class="lbl" text-anchor="end">{escape(args.title_note)}</text>' if args.title_note else ""
+    note = (f'<text x="{width - pad}" y="34" class="lbl" text-anchor="end">{escape(args.title_note)}</text>'
+            if args.title_note else "")
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" fill="none" role="img" aria-labelledby="atitle">
 <title id="atitle">{escape(args.activity_title)}</title>
 <style>
-  .header {{ font: 600 18px {font}; fill: {c(args.title_color)}; }}
-  .val {{ font: 600 10px {font}; fill: {c(args.title_color)}; }}
-  .lbl {{ font: 400 10px {font}; fill: {c(args.text_color)}; }}
-  .foot {{ font: 400 10px {font}; fill: {c(args.text_color)}; opacity: .7; }}
+  {theme_css}
+  .header {{ font: 600 18px {font}; fill: {tc}; }}
+  .val {{ font: 600 10px {font}; fill: {tc}; }}
+  .lbl {{ font: 400 10px {font}; fill: {xc}; }}
+  .foot {{ font: 400 10px {font}; fill: {xc}; opacity: .7; }}
   .item {{ animation: fade .3s ease-in-out backwards; }}
   @keyframes fade {{ from {{ opacity: 0; }} }}
   @media (prefers-reduced-motion: reduce) {{ .item {{ animation: none; }} }}
 </style>
-<rect x="0.5" y="0.5" rx="{args.border_radius}" width="{width - 1}" height="{height - 1}" fill="{c(args.bg_color)}" stroke="{c(args.border_color)}" stroke-opacity="{0 if args.hide_border else 1}"/>
+<rect x="0.5" y="0.5" rx="{args.border_radius}" width="{width - 1}" height="{height - 1}" style="fill:{bg};stroke:{bc}" stroke-opacity="{0 if args.hide_border else 1}"/>
 <text x="{pad}" y="35" class="header">{escape(args.activity_title)}</text>
 {note}
-<line x1="{pad}" y1="{chart_bottom + 0.5}" x2="{width - pad}" y2="{chart_bottom + 0.5}" stroke="{c(args.border_color)}"/>
-{"".join(bars)}
-<text x="{pad}" y="{height - 12}" class="foot">≈{total:,.0f} hrs estimated from commit timestamps · {stats["commits"]:,} commits</text>
+{"".join(cols)}
+<text x="{pad}" y="{height - 10}" class="foot">One block is about {per_block} hours, estimated from commit times. {sum(values):,.0f} hours in total.</text>
 </svg>
 """
 
@@ -737,6 +761,8 @@ def parse_args(argv=None):
     o.add_argument("--show-hours", action="store_true", help="show estimated hours per language")
     o.add_argument("--layout", choices=["auto", "compact", "list"], default="auto",
                    help="auto = compact, or list when --show-hours is set")
+    o.add_argument("--theme", choices=["custom", "github"], default="custom",
+                   help="custom = the --*-color options; github = transparent, follows GitHub light/dark mode")
     o.add_argument("--width", type=int, default=300)
     o.add_argument("--bg-color", default="09090B")
     o.add_argument("--title-color", default="FAFAFA")
